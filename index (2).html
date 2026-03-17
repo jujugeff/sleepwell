@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sleep Well — Prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --night: #0D1B2A;
+    --night-soft: #162333;
+    --night-mid: #1E3248;
+    --cream: #F5F0E8;
+    --cream-dim: #E8E2D6;
+    --amber: #D4A853;
+    --amber-light: #E8C278;
+    --amber-dim: #9E7A36;
+    --white: #FFFFFF;
+    --text-muted: rgba(245, 240, 232, 0.45);
+    --text-mid: rgba(245, 240, 232, 0.7);
+    --border: rgba(245, 240, 232, 0.1);
+    --border-amber: rgba(212, 168, 83, 0.3);
+    --radius: 16px;
+    --radius-sm: 10px;
+    --radius-lg: 24px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #080F18;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--cream);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  /* ── Global Progress Bar ── */
+  .global-progress {
+    width: 100%;
+    max-width: 390px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .global-progress-track {
+    flex: 1;
+    height: 2px;
+    background: rgba(245,240,232,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .global-progress-fill {
+    height: 100%;
+    background: var(--amber);
+    border-radius: 2px;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .global-progress-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    white-space: nowrap;
+    min-width: 40px;
+    text-align: right;
+  }
+
+  /* ── Phone Shell ── */
+  .phone {
+    width: 390px;
+    height: 844px;
+    background: var(--night);
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.06),
+      0 40px 80px rgba(0,0,0,0.7),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+    flex-shrink: 0;
+  }
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 120px; height: 34px;
+    background: #080F18;
+    border-radius: 0 0 20px 20px;
+    z-index: 100;
+  }
+
+  .screen {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: absolute;
+    top: 0; left: 0;
+    display: none;
+    flex-direction: column;
+    opacity: 0;
+    transform: translateX(40px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+  }
+  .screen.active {
+    display: flex;
+    opacity: 1;
+    transform: translateX(0);
+  }
+  .screen.exit {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+
+  /* ── Shared Components ── */
+  .btn-primary {
+    display: block;
+    width: 100%;
+    padding: 17px;
+    background: var(--amber);
+    color: var(--night);
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+  }
+  .btn-primary:hover { background: var(--amber-light); }
+  .btn-secondary {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    background: transparent;
+    color: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    cursor: pointer;
+    text-align: center;
+  }
+  .chip {
+    padding: 11px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 13px;
+    color: var(--text-mid);
+    cursor: pointer;
+    transition: all 0.2s;
+    background: rgba(255,255,255,0.03);
+    text-align: center;
+    line-height: 1.3;
+  }
+  .chip.selected {
+    border-color: var(--amber);
+    background: rgba(212, 168, 83, 0.12);
+    color: var(--amber-light);
+  }
+  .field-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .field-input {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--cream);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    outline: none;
+  }
+  .field-input::placeholder { color: var(--text-muted); }
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    line-height: 1.25;
+    color: var(--cream);
+    letter-spacing: -0.5px;
+  }
+  .section-subtitle {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-top: 8px;
+  }
+  .progress-bar-wrap {
+    width: 100%;
+    height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--amber);
+    border-radius: 2px;
+  }
+  .scrollable {
+    overflow-y: auto;
+    flex: 1;
+    scrollbar-width: none;
+  }
+  .scrollable::-webkit-scrollbar { display: none; }
+  .deco-circle {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .deco-arc {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid;
+    pointer-events: none;
+  }
+  .home-bar {
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding-bottom: 8px;
+  }
+  .home-bar-pill {
+    width: 120px; height: 5px;
+    background: rgba(245,240,232,0.2);
+    border-radius: 3px;
+  }
+  .screen-header {
+    padding: 52px 28px 24px;
+  }
+  .screen-header.compact { padding-bottom: 16px; }
+
+  /* ═══ SCREEN 1 — Accueil ═══ */
+  #s1 { background: var(--night); padding: 0; }
+  .s1-bg { position: absolute; inset: 0; overflow: hidden; }
+  .s1-arc1 { width: 500px; height: 500px; top: -180px; right: -200px; border-color: rgba(212,168,83,0.12); border-width: 1px; }
+  .s1-arc2 { width: 320px; height: 320px; top: -80px; right: -100px; border-color: rgba(212,168,83,0.08); border-width: 1px; }
+  .s1-glow { width: 280px; height: 280px; top: -120px; right: -80px; background: radial-gradient(circle, rgba(212,168,83,0.15) 0%, transparent 70%); }
+  .s1-arc3 { width: 600px; height: 600px; bottom: -300px; left: -300px; border-color: rgba(245,240,232,0.04); border-width: 1px; }
+  .s1-content { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100%; padding: 0 32px 48px; }
+  .s1-logo { margin-top: 64px; display: flex; align-items: center; gap: 10px; }
+  .s1-logo-mark { width: 36px; height: 36px; background: var(--amber); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .s1-logo-text { font-family: 'Playfair Display', serif; font-size: 18px; color: var(--cream); letter-spacing: -0.3px; }
+  .s1-logo-text span { color: var(--amber); }
+  .s1-center { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .s1-eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 3px; color: var(--amber); margin-bottom: 20px; }
+  .s1-headline { font-family: 'Playfair Display', serif; font-size: 38px; line-height: 1.15; color: var(--cream); letter-spacing: -1px; }
+  .s1-headline em { font-style: italic; color: var(--amber); }
+  .s1-body { font-size: 15px; color: var(--text-muted); line-height: 1.65; margin-top: 20px; max-width: 280px; }
+  .s1-stats { display: flex; gap: 24px; margin-top: 32px; padding-top: 28px; border-top: 1px solid var(--border); }
+  .s1-stat-val { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--amber); }
+  .s1-stat-label { font-size: 11px; color: var(--text-muted); line-height: 1.4; margin-top: 2px; }
+  .s1-bottom { margin-top: 40px; }
+  .s1-trust { text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 14px; letter-spacing: 0.3px; }
+
+  /* ═══ SCREEN 2 — Profil ═══ */
+  #s2 { background: var(--night); }
+  .s2-step { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--amber); margin-bottom: 12px; }
+  .s2-body { flex: 1; overflow-y: auto; scrollbar-width: none; }
+  .s2-body::-webkit-scrollbar { display: none; }
+  .s2-section { padding: 24px 28px; }
+  .s2-section + .s2-section { border-top: 1px solid var(--border); }
+  .s2-age-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+  .age-chip { padding: 10px 6px; border: 1px solid var(--border); border-radius: 10px; font-size: 12px; text-align: center; color: var(--text-muted); cursor: pointer; line-height: 1.3; }
+  .age-chip.sel { border-color: var(--amber); background: rgba(212,168,83,0.12); color: var(--amber-light); }
+  .age-chip .age-val { font-weight: 600; font-size: 14px; color: inherit; }
+  .prob-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  .prob-chip { padding: 13px 12px; border: 1px solid var(--border); border-radius: 12px; font-size: 12.5px; color: var(--text-mid); cursor: pointer; line-height: 1.35; background: rgba(255,255,255,0.02); }
+  .prob-chip.sel { border-color: var(--amber); background: rgba(212,168,83,0.1); color: var(--amber-light); }
+  .prob-chip .prob-icon { font-size: 16px; display: block; margin-bottom: 4px; }
+  .s2-footer { padding: 20px 28px 32px; }
+
+  /* ═══ SCREEN 3 — Dépendances ═══ */
+  #s3 { background: var(--night); }
+  .s3-body { flex: 1; overflow-y: auto; scrollbar-width: none; padding: 0 28px; }
+  .s3-body::-webkit-scrollbar { display: none; }
+  .dep-item { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .dep-left { display: flex; align-items: center; gap: 14px; }
+  .dep-icon { width: 40px; height: 40px; background: rgba(255,255,255,0.04); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .dep-icon.on { background: rgba(212,168,83,0.15); }
+  .dep-name { font-size: 14px; color: var(--cream); font-weight: 500; }
+  .dep-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .toggle { width: 44px; height: 26px; background: rgba(255,255,255,0.08); border-radius: 13px; position: relative; flex-shrink: 0; transition: background 0.2s; }
+  .toggle.on { background: var(--amber); }
+  .toggle::after { content: ''; position: absolute; width: 20px; height: 20px; background: white; border-radius: 50%; top: 3px; left: 3px; transition: left 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+  .toggle.on::after { left: 21px; }
+  .dep-other { margin: 16px 0 4px; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px dashed rgba(245,240,232,0.15); border-radius: 12px; font-size: 13px; color: var(--text-muted); }
+  .s3-footer { padding: 16px 28px 32px; }
+
+  /* ═══ SCREEN 4 — Environnement ═══ */
+  #s4 { background: var(--night); }
+  .s4-body { flex: 1; overflow-y: auto; scrollbar-width: none; padding: 0 28px; }
+  .s4-body::-webkit-scrollbar { display: none; }
+  .env-card { padding: 16px; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 10px; cursor: pointer; transition: all 0.2s; background: rgba(255,255,255,0.02); }
+  .env-card.on { border-color: var(--amber); background: rgba(212,168,83,0.07); }
+  .env-card-top { display: flex; align-items: center; gap: 12px; }
+  .env-icon { font-size: 20px; width: 36px; text-align: center; flex-shrink: 0; }
+  .env-name { font-size: 14px; font-weight: 500; color: var(--cream); flex: 1; }
+  .env-check { width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; }
+  .env-card.on .env-check { background: var(--amber); border-color: var(--amber); color: var(--night); font-size: 12px; font-weight: 700; }
+  .env-tip { margin-top: 10px; padding: 8px 10px; background: rgba(212,168,83,0.08); border-radius: 8px; font-size: 12px; color: var(--amber-light); line-height: 1.45; display: none; }
+  .env-card.on .env-tip { display: block; }
+  .s4-footer { padding: 16px 28px 32px; }
+
+  /* ═══ SCREEN 5 — Plan personnalisé ═══ */
+  #s5 { background: var(--night); }
+  .s5-hero { padding: 0 28px 28px; position: relative; }
+  .s5-hero::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--amber-dim), transparent); }
+  .s5-name { font-family: 'Playfair Display', serif; font-size: 28px; color: var(--cream); letter-spacing: -0.5px; margin-bottom: 4px; }
+  .s5-name span { color: var(--amber); }
+  .s5-sub { font-size: 13px; color: var(--text-muted); }
+  .s5-body { flex: 1; overflow-y: auto; scrollbar-width: none; padding: 20px 28px 0; }
+  .s5-body::-webkit-scrollbar { display: none; }
+  .plan-block { margin-bottom: 16px; border-radius: var(--radius-lg); overflow: hidden; position: relative; }
+  .plan-block-tonight { background: linear-gradient(135deg, #1E3248 0%, #162333 100%); border: 1px solid rgba(212,168,83,0.25); padding: 24px; }
+  .plan-block-week { background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 20px; }
+  .plan-block-goal { background: linear-gradient(135deg, rgba(212,168,83,0.1) 0%, rgba(212,168,83,0.04) 100%); border: 1px solid var(--border-amber); padding: 20px; }
+  .plan-tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 6px; font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; margin-bottom: 14px; }
+  .tag-tonight { background: rgba(212,168,83,0.2); color: var(--amber); }
+  .tag-week { background: rgba(245,240,232,0.08); color: var(--text-mid); }
+  .tag-goal { background: rgba(212,168,83,0.15); color: var(--amber-light); }
+  .plan-action { font-size: 15px; line-height: 1.55; color: var(--cream); font-weight: 500; }
+  .plan-action strong { color: var(--amber); }
+  .plan-nights { display: flex; gap: 8px; margin-top: 14px; }
+  .night-step { flex: 1; padding: 10px 8px; background: rgba(255,255,255,0.04); border-radius: 10px; text-align: center; }
+  .night-step-num { font-family: 'Playfair Display', serif; font-size: 18px; color: var(--amber); }
+  .night-step-label { font-size: 10px; color: var(--text-muted); line-height: 1.4; margin-top: 4px; }
+  .plan-goal-text { font-family: 'Playfair Display', serif; font-size: 20px; font-style: italic; color: var(--cream); line-height: 1.3; margin-bottom: 10px; }
+  .s5-footer { padding: 16px 28px 32px; }
+
+  /* ═══ SCREEN 6 — Suivi ═══ */
+  #s6 { background: var(--night); }
+  .s6-toggle-wrap { padding: 0 28px 20px; }
+  .s6-toggle { display: flex; background: rgba(255,255,255,0.05); border-radius: 12px; padding: 4px; }
+  .s6-tab { flex: 1; padding: 10px; text-align: center; border-radius: 9px; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
+  .s6-tab.active { background: var(--night-mid); color: var(--cream); border: 1px solid rgba(212,168,83,0.25); }
+  .s6-body { flex: 1; overflow-y: auto; scrollbar-width: none; padding: 0 28px; }
+  .s6-body::-webkit-scrollbar { display: none; }
+  .track-block { margin-bottom: 20px; }
+  .track-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 10px; }
+  .time-picker { display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: var(--radius); gap: 8px; }
+  .time-col { text-align: center; }
+  .time-val { font-family: 'Playfair Display', serif; font-size: 36px; color: var(--cream); line-height: 1; }
+  .time-sep { font-family: 'Playfair Display', serif; font-size: 32px; color: var(--amber); margin-top: -4px; }
+  .time-label { font-size: 10px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; }
+  .quick-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .qc { padding: 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 13px; color: var(--text-mid); text-align: center; cursor: pointer; transition: all 0.2s; }
+  .qc.sel { border-color: var(--amber); background: rgba(212,168,83,0.1); color: var(--amber-light); }
+  .insight-card { margin-top: 20px; padding: 18px; background: linear-gradient(135deg, rgba(212,168,83,0.12) 0%, rgba(212,168,83,0.04) 100%); border: 1px solid var(--border-amber); border-radius: var(--radius); }
+  .insight-num { font-family: 'Playfair Display', serif; font-size: 13px; color: var(--amber); margin-bottom: 6px; }
+  .insight-text { font-size: 14px; color: var(--cream); line-height: 1.5; }
+  .s6-footer { padding: 16px 28px 32px; }
+
+  /* ═══ SCREEN 7 — Calendrier ═══ */
+  #s7 { background: var(--night); }
+  .s7-body { flex: 1; overflow-y: auto; scrollbar-width: none; padding: 0 28px; }
+  .s7-body::-webkit-scrollbar { display: none; }
+  .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .cal-month { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--cream); }
+  .cal-arrow { width: 32px; height: 32px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 14px; cursor: pointer; }
+  .cal-days-header { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 8px; }
+  .cal-day-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); padding: 6px 0; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-cell { aspect-ratio: 1; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; position: relative; cursor: pointer; }
+  .cal-cell-num { color: var(--text-mid); }
+  .cal-cell.empty { cursor: default; }
+  .cal-cell.hard { background: rgba(220,80,80,0.2); }
+  .cal-cell.hard .cal-cell-num { color: #E88080; }
+  .cal-cell.avg { background: rgba(200,130,50,0.2); }
+  .cal-cell.avg .cal-cell-num { color: #E0A060; }
+  .cal-cell.ok { background: rgba(200,180,50,0.2); }
+  .cal-cell.ok .cal-cell-num { color: #D8C860; }
+  .cal-cell.good { background: rgba(60,180,100,0.2); }
+  .cal-cell.good .cal-cell-num { color: #80D4A0; }
+  .cal-cell.today { box-shadow: 0 0 0 2px var(--amber); }
+  .cal-cell.today .cal-cell-num { color: var(--cream); font-weight: 600; }
+  .cal-legend { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .cal-stats { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .cal-stat-card { padding: 16px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--radius); }
+  .cal-stat-val { font-family: 'Playfair Display', serif; font-size: 28px; color: var(--amber); line-height: 1; }
+  .cal-stat-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; line-height: 1.4; }
+  .cal-streak { margin-top: 10px; padding: 16px; background: linear-gradient(90deg, rgba(212,168,83,0.1), rgba(212,168,83,0.04)); border: 1px solid var(--border-amber); border-radius: var(--radius); display: flex; align-items: center; gap: 14px; }
+  .streak-icon { font-size: 28px; }
+  .streak-val { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--amber); }
+  .streak-label { font-size: 12px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<!-- Global progress bar -->
+<div class="global-progress">
+  <div class="global-progress-track">
+    <div class="global-progress-fill" id="globalFill" style="width: 14%"></div>
+  </div>
+  <div class="global-progress-label" id="globalLabel">1 / 7</div>
+</div>
+
+<div class="phone">
+
+  <!-- ══ SCREEN 1 ══ -->
+  <div class="screen active" id="s1">
+    <div class="s1-bg">
+      <div class="deco-arc s1-arc1"></div>
+      <div class="deco-arc s1-arc2"></div>
+      <div class="deco-circle s1-glow"></div>
+      <div class="deco-arc s1-arc3"></div>
+    </div>
+    <div class="s1-content">
+      <div class="s1-logo">
+        <div class="s1-logo-mark">◐</div>
+        <div class="s1-logo-text">Sleep<span>Well</span></div>
+      </div>
+      <div class="s1-center">
+        <div class="s1-eyebrow">Programme scientifique</div>
+        <h1 class="s1-headline">Bonne nuit.<br>On va vous<br>aider à<br><em>retrouver</em><br>le vôtre.</h1>
+        <p class="s1-body">Un plan personnalisé basé sur l'âge de votre enfant et ses habitudes réelles — sans consultation à 400 €.</p>
+        <div class="s1-stats">
+          <div><div class="s1-stat-val">14 nuits</div><div class="s1-stat-label">Programme<br>complet</div></div>
+          <div><div class="s1-stat-val">94%</div><div class="s1-stat-label">Parents<br>satisfaits</div></div>
+          <div><div class="s1-stat-val">0–6 ans</div><div class="s1-stat-label">Toutes les<br>tranches d'âge</div></div>
+        </div>
+      </div>
+      <div class="s1-bottom">
+        <button class="btn-primary" onclick="goTo(2)">Commencer</button>
+        <p class="s1-trust">Essai 7 jours gratuit · Sans engagement</p>
+      </div>
+    </div>
+    <div class="home-bar"><div class="home-bar-pill"></div></div>
+  </div>
+
+  <!-- ══ SCREEN 2 ══ -->
+  <div class="screen" id="s2">
+    <div class="screen-header">
+      <div class="progress-bar-wrap" style="margin-bottom:20px"><div class="progress-bar-fill" style="width:14%"></div></div>
+      <div class="s2-step">Étape 1 sur 3</div>
+      <h2 class="section-title">Parlons de<br>ton enfant.</h2>
+      <p class="section-subtitle">Ces informations nous permettent de calibrer le programme précisément.</p>
+    </div>
+    <div class="s2-body">
+      <div class="s2-section">
+        <div class="field-label">Prénom</div>
+        <input class="field-input" type="text" placeholder="Comment s'appelle-t-il·elle ?">
+      </div>
+      <div class="s2-section">
+        <div class="field-label">Âge</div>
+        <div class="s2-age-grid">
+          <div class="age-chip"><div class="age-val">0–3</div>mois</div>
+          <div class="age-chip"><div class="age-val">3–6</div>mois</div>
+          <div class="age-chip"><div class="age-val">6–12</div>mois</div>
+          <div class="age-chip sel"><div class="age-val">1–2</div>ans</div>
+          <div class="age-chip"><div class="age-val">2–3</div>ans</div>
+          <div class="age-chip"><div class="age-val">3–4</div>ans</div>
+          <div class="age-chip"><div class="age-val">4–5</div>ans</div>
+          <div class="age-chip"><div class="age-val">5–6</div>ans</div>
+        </div>
+      </div>
+      <div class="s2-section">
+        <div class="field-label">Problème principal</div>
+        <div class="prob-grid">
+          <div class="prob-chip sel"><span class="prob-icon">😶</span>S'endormir seul</div>
+          <div class="prob-chip"><span class="prob-icon">🌙</span>Réveils nocturnes</div>
+          <div class="prob-chip"><span class="prob-icon">⏱</span>Courtes siestes</div>
+          <div class="prob-chip"><span class="prob-icon">🛏</span>Vient dans notre lit</div>
+          <div class="prob-chip"><span class="prob-icon">😤</span>Crises avant le sommeil</div>
+          <div class="prob-chip"><span class="prob-icon">😱</span>Terreurs nocturnes</div>
+        </div>
+      </div>
+    </div>
+    <div class="s2-footer">
+      <button class="btn-primary" onclick="goTo(3)">Continuer →</button>
+    </div>
+    <div class="home-bar"><div class="home-bar-pill"></div></div>
+  </div>
+
+  <!-- ══ SCREEN 3 ══ -->
+  <div class="screen" id="s3">
+    <div class="screen-header compact">
+      <div class="progress-bar-wrap" style="margin-bottom:20px"><div class="progress-bar-fill" style="width:42%"></div></div>
+      <div class="s2-step">Étape 2 sur 3</div>
+      <h2 class="section-title">Pour s'endormir,<br>il a besoin de...</h2>
+      <p class="section-subtitle">Activez tout ce qui s'applique.</p>
+    </div>
+    <div class="s3-body">
+      <div class="dep-item"><div class="dep-left"><div class="dep-icon on">🤱</div><div><div class="dep-name">Présence parentale</div><div class="dep-sub">Rester dans la pièce</div></div></div><div class="toggle on"></div></div>
+      <div class="dep-item"><div class="dep-left"><div class="dep-icon on">🍼</div><div><div class="dep-name">Biberon ou allaitement</div><div class="dep-sub">Association lait-sommeil</div></div></div><div class="toggle on"></div></div>
+      <div class="dep-item"><div class="dep-left"><div class="dep-icon">○</div><div><div class="dep-name">Tétine</div><div class="dep-sub">Succion non nutritive</div></div></div><div class="toggle"></div></div>
+      <div class="dep-item"><div class="dep-left"><div class="dep-icon on">🤸</div><div><div class="dep-name">Bercement ou portage</div><div class="dep-sub">Mouvement nécessaire</div></div></div><div class="toggle on"></div></div>
+      <div class="dep-item"><div class="dep-left"><div class="dep-icon">○</div><div><div class="dep-name">Veilleuse ou musique</div><div class="dep-sub">Stimulation sensorielle</div></div></div><div class="toggle"></div></div>
+      <div class="dep-item"><div class="dep-left"><div class="dep-icon">○</div><div><div class="dep-name">Contact physique</div><div class="dep-sub">Cheveux, peau, chaleur</div></div></div><div class="toggle"></div></div>
+      <div class="dep-item"><div class="dep-left"><div class="dep-icon">○</div><div><div class="dep-name">Lit parental</div><div class="dep-sub">Partage de lit</div></div></div><div class="toggle"></div></div>
+      <div class="dep-item"><div class="dep-left"><div class="dep-icon">○</div><div><div class="dep-name">Voiture ou poussette</div><div class="dep-sub">Mouvement passif</div></div></div><div class="toggle"></div></div>
+      <div class="dep-other">+ Autre chose ?</div>
+    </div>
+    <div class="s3-footer">
+      <button class="btn-primary" onclick="goTo(4)">Continuer →</button>
+    </div>
+    <div class="home-bar"><div class="home-bar-pill"></div></div>
+  </div>
+
+  <!-- ══ SCREEN 4 ══ -->
+  <div class="screen" id="s4">
+    <div class="screen-header compact">
+      <div class="progress-bar-wrap" style="margin-bottom:20px"><div class="progress-bar-fill" style="width:71%"></div></div>
+      <div class="s2-step">Étape 3 sur 3</div>
+      <h2 class="section-title">Comment est<br>sa chambre ?</h2>
+      <p class="section-subtitle">Cochez les caractéristiques actuelles.</p>
+    </div>
+    <div class="s4-body">
+      <div class="env-card on">
+        <div class="env-card-top"><div class="env-icon">⬛</div><div class="env-name">Noir complet</div><div class="env-check">✓</div></div>
+        <div class="env-tip">✓ Parfait. Le noir complet optimise la sécrétion de mélatonine. Maintenez cette configuration.</div>
+      </div>
+      <div class="env-card">
+        <div class="env-card-top"><div class="env-icon">💡</div><div class="env-name">Veilleuse allumée</div><div class="env-check"></div></div>
+        <div class="env-tip">→ Nous vous guiderons vers son retrait progressif. Une lumière rouge est une alternative si nécessaire.</div>
+      </div>
+      <div class="env-card">
+        <div class="env-card-top"><div class="env-icon">〰</div><div class="env-name">Bruit blanc</div><div class="env-check"></div></div>
+        <div class="env-tip">→ Attention aux dépendances sonores. Nous proposerons un protocole de sevrage progressif.</div>
+      </div>
+      <div class="env-card on">
+        <div class="env-card-top"><div class="env-icon">🌡</div><div class="env-name">Chambre 18–20°C</div><div class="env-check">✓</div></div>
+        <div class="env-tip">✓ La température idéale. Une variation de ±2° peut provoquer des micro-réveils.</div>
+      </div>
+      <div class="env-card">
+        <div class="env-card-top"><div class="env-icon">👶</div><div class="env-name">Partage de chambre</div><div class="env-check"></div></div>
+        <div class="env-tip">→ Le plan tiendra compte de la configuration et proposera des adaptations spécifiques.</div>
+      </div>
+    </div>
+    <div class="s4-footer">
+      <button class="btn-primary" onclick="goTo(5)">Générer mon plan →</button>
+    </div>
+    <div class="home-bar"><div class="home-bar-pill"></div></div>
+  </div>
+
+  <!-- ══ SCREEN 5 ══ -->
+  <div class="screen" id="s5">
+    <div class="screen-header compact" style="position:relative">
+      <div class="s5-sub" style="font-size:13px;color:var(--text-muted);margin-bottom:8px">Programme personnalisé</div>
+      <div class="s5-name">Plan de <span>Léa</span></div>
+      <p class="section-subtitle" style="margin-top:6px">14 nuits · Démarré ce soir</p>
+      <div style="position:absolute;top:52px;right:28px;font-size:32px;opacity:0.12">◐</div>
+    </div>
+    <div class="s5-body">
+      <div class="plan-block plan-block-tonight">
+        <div class="plan-tag tag-tonight">🌙 Ce soir</div>
+        <div class="plan-action">Couchez Léa dans son lit <strong>éveillée</strong>. Restez assis·e sur une chaise au milieu de la chambre sans contact physique.</div>
+        <div style="margin-top:12px;padding:10px 12px;background:rgba(0,0,0,0.2);border-radius:10px;font-size:12px;color:rgba(245,240,232,0.6);line-height:1.5">💬 Répétez doucement : <em style="color:var(--cream)">"J'ai confiance en toi, tu vas y arriver."</em></div>
+      </div>
+      <div class="plan-block plan-block-week">
+        <div class="plan-tag tag-week">📅 Cette semaine</div>
+        <div class="plan-action" style="font-size:13px;margin-bottom:12px">Déplacement progressif de votre présence.</div>
+        <div class="plan-nights">
+          <div class="night-step"><div class="night-step-num">N1–3</div><div class="night-step-label">Chaise<br>au centre</div></div>
+          <div class="night-step"><div class="night-step-num">N4–6</div><div class="night-step-label">Chaise<br>vers la porte</div></div>
+          <div class="night-step"><div class="night-step-num">N7–9</div><div class="night-step-label">Hors de<br>la chambre</div></div>
+        </div>
+      </div>
+      <div class="plan-block plan-block-goal">
+        <div class="plan-tag tag-goal">✨ Dans 2 semaines</div>
+        <div class="plan-goal-text">"Léa s'endort seule, rassurée."</div>
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.5">Endormissement autonome · Nuits sans intervention · Vous dormez enfin.</div>
+      </div>
+      <div style="height:16px"></div>
+    </div>
+    <div class="s5-footer">
+      <button class="btn-primary" onclick="goTo(6)">Commencer ce soir →</button>
+      <button class="btn-secondary" style="margin-top:10px;font-size:13px;padding:10px" onclick="goTo(6)">Voir le programme complet</button>
+    </div>
+    <div class="home-bar"><div class="home-bar-pill"></div></div>
+  </div>
+
+  <!-- ══ SCREEN 6 ══ -->
+  <div class="screen" id="s6">
+    <div class="screen-header compact">
+      <h2 class="section-title" style="font-size:22px">Suivi de Léa</h2>
+      <p class="section-subtitle">Nuit 3 sur 14</p>
+    </div>
+    <div class="s6-toggle-wrap">
+      <div class="s6-toggle">
+        <div class="s6-tab active">🌙 Soir</div>
+        <div class="s6-tab">☀️ Matin</div>
+      </div>
+    </div>
+    <div class="s6-body">
+      <div class="track-block">
+        <div class="track-label">Heure de mise au lit</div>
+        <div class="time-picker">
+          <div class="time-col"><div class="time-val">20</div><div class="time-label">heure</div></div>
+          <div class="time-sep">:</div>
+          <div class="time-col"><div class="time-val">15</div><div class="time-label">minutes</div></div>
+        </div>
+      </div>
+      <div class="track-block">
+        <div class="track-label">Temps d'endormissement</div>
+        <div class="quick-choices">
+          <div class="qc">Moins de 10 min</div>
+          <div class="qc sel">10 – 20 min</div>
+          <div class="qc">20 – 40 min</div>
+          <div class="qc">Plus de 40 min</div>
+        </div>
+      </div>
+      <div class="track-block">
+        <div class="track-label">Ce que vous avez dû faire</div>
+        <div class="quick-choices">
+          <div class="qc sel">Rester assis·e</div>
+          <div class="qc">Plusieurs allers-retours</div>
+          <div class="qc">Pris·e dans les bras</div>
+          <div class="qc">Rien du tout 🎉</div>
+        </div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-num">Nuit 3 sur 14</div>
+        <div class="insight-text">Bien. Le temps d'endormissement se stabilise. Déplacez la chaise vers la porte ce soir.</div>
+      </div>
+      <div style="height:16px"></div>
+    </div>
+    <div class="s6-footer">
+      <button class="btn-primary" onclick="goTo(7)">Enregistrer la nuit →</button>
+    </div>
+    <div class="home-bar"><div class="home-bar-pill"></div></div>
+  </div>
+
+  <!-- ══ SCREEN 7 ══ -->
+  <div class="screen" id="s7">
+    <div class="screen-header compact">
+      <h2 class="section-title" style="font-size:22px">Progression de Léa</h2>
+      <p class="section-subtitle">Mars 2026 · Semaine 2</p>
+    </div>
+    <div class="s7-body">
+      <div class="cal-nav">
+        <div class="cal-arrow">‹</div>
+        <div class="cal-month">Mars 2026</div>
+        <div class="cal-arrow">›</div>
+      </div>
+      <div class="cal-days-header">
+        <div class="cal-day-label">Lun</div><div class="cal-day-label">Mar</div><div class="cal-day-label">Mer</div>
+        <div class="cal-day-label">Jeu</div><div class="cal-day-label">Ven</div><div class="cal-day-label">Sam</div><div class="cal-day-label">Dim</div>
+      </div>
+      <div class="cal-grid">
+        <div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div>
+        <div class="cal-cell empty"></div><div class="cal-cell empty"></div>
+        <div class="cal-cell"><span class="cal-cell-num">1</span></div><div class="cal-cell"><span class="cal-cell-num">2</span></div>
+        <div class="cal-cell hard"><span class="cal-cell-num">3</span></div><div class="cal-cell hard"><span class="cal-cell-num">4</span></div>
+        <div class="cal-cell avg"><span class="cal-cell-num">5</span></div><div class="cal-cell avg"><span class="cal-cell-num">6</span></div>
+        <div class="cal-cell ok"><span class="cal-cell-num">7</span></div><div class="cal-cell ok"><span class="cal-cell-num">8</span></div>
+        <div class="cal-cell good"><span class="cal-cell-num">9</span></div>
+        <div class="cal-cell good"><span class="cal-cell-num">10</span></div><div class="cal-cell good"><span class="cal-cell-num">11</span></div>
+        <div class="cal-cell ok"><span class="cal-cell-num">12</span></div><div class="cal-cell good"><span class="cal-cell-num">13</span></div>
+        <div class="cal-cell good"><span class="cal-cell-num">14</span></div><div class="cal-cell good"><span class="cal-cell-num">15</span></div>
+        <div class="cal-cell good"><span class="cal-cell-num">16</span></div>
+        <div class="cal-cell today good"><span class="cal-cell-num">17</span></div>
+        <div class="cal-cell"><span class="cal-cell-num" style="color:rgba(245,240,232,0.2)">18</span></div>
+        <div class="cal-cell"><span class="cal-cell-num" style="color:rgba(245,240,232,0.2)">19</span></div>
+        <div class="cal-cell"><span class="cal-cell-num" style="color:rgba(245,240,232,0.2)">20</span></div>
+        <div class="cal-cell"><span class="cal-cell-num" style="color:rgba(245,240,232,0.2)">21</span></div>
+        <div class="cal-cell"><span class="cal-cell-num" style="color:rgba(245,240,232,0.2)">22</span></div>
+        <div class="cal-cell"><span class="cal-cell-num" style="color:rgba(245,240,232,0.2)">23</span></div>
+        <div class="cal-cell"><span class="cal-cell-num" style="color:rgba(245,240,232,0.2)">24</span></div>
+        <div class="cal-cell"><span class="cal-cell-num" style="color:rgba(245,240,232,0.2)">25</span></div>
+        <div class="cal-cell"><span class="cal-cell-num" style="color:rgba(245,240,232,0.2)">26</span></div>
+        <div class="cal-cell"><span class="cal-cell-num" style="color:rgba(245,240,232,0.2)">27</span></div>
+        <div class="cal-cell"><span class="cal-cell-num" style="color:rgba(245,240,232,0.2)">28</span></div>
+        <div class="cal-cell"><span class="cal-cell-num" style="color:rgba(245,240,232,0.2)">29</span></div>
+        <div class="cal-cell"><span class="cal-cell-num" style="color:rgba(245,240,232,0.2)">30</span></div>
+        <div class="cal-cell"><span class="cal-cell-num" style="color:rgba(245,240,232,0.2)">31</span></div>
+      </div>
+      <div class="cal-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(220,80,80,0.5)"></div>Difficile</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(200,130,50,0.5)"></div>Moyenne</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(200,180,50,0.5)"></div>Correcte</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(60,180,100,0.5)"></div>Bonne</div>
+      </div>
+      <div class="cal-stats">
+        <div class="cal-stat-card"><div class="cal-stat-val">10</div><div class="cal-stat-label">nuits paisibles<br>ce mois</div></div>
+        <div class="cal-stat-card"><div class="cal-stat-val">−68%</div><div class="cal-stat-label">de réveils vs<br>semaine 1</div></div>
+      </div>
+      <div class="cal-streak">
+        <div class="streak-icon">🔥</div>
+        <div><div class="streak-val">7 nuits</div><div class="streak-label">consécutives sans intervention</div></div>
+      </div>
+      <div style="height:16px"></div>
+    </div>
+    <div style="padding: 16px 28px 32px">
+      <button class="btn-primary" onclick="goTo(1)" style="background: rgba(212,168,83,0.15); color: var(--amber); border: 1px solid var(--border-amber);">↩ Recommencer</button>
+    </div>
+    <div class="home-bar"><div class="home-bar-pill"></div></div>
+  </div>
+
+</div>
+
+<script>
+  const TOTAL = 7;
+  let current = 1;
+
+  function goTo(n) {
+    const from = document.getElementById('s' + current);
+    const to = document.getElementById('s' + n);
+    if (!from || !to || from === to) return;
+
+    // Exit animation
+    from.classList.add('exit');
+    setTimeout(() => {
+      from.classList.remove('active', 'exit');
+      from.style.display = 'none';
+    }, 300);
+
+    // Enter animation
+    to.style.display = 'flex';
+    to.style.opacity = '0';
+    to.style.transform = 'translateX(40px)';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        to.classList.add('active');
+        to.style.opacity = '';
+        to.style.transform = '';
+      });
+    });
+
+    current = n;
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const pct = Math.round((current / TOTAL) * 100);
+    document.getElementById('globalFill').style.width = pct + '%';
+    document.getElementById('globalLabel').textContent = current + ' / ' + TOTAL;
+  }
+</script>
+</body>
+</html>
